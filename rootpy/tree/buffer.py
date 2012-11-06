@@ -27,7 +27,6 @@ class TreeBuffer(dict):
         self._current_entry = 0
         self._collections = {}
         self._objects = []
-        self.userdata = {}
         self._entry = Int(0)
         if branches is not None:
             self.__process(branches)
@@ -201,6 +200,7 @@ class TreeBuffer(dict):
         coll = TreeCollection(self, name, prefix, size, mix=mix)
         object.__setattr__(self, name, coll)
         self._collections[coll] = (name, prefix, size, mix)
+        return coll
 
     def define_object(self, name, prefix, mix=None):
 
@@ -208,8 +208,10 @@ class TreeBuffer(dict):
         if mix is not None:
             # FIXME: Undefined variable: mix_treeobject
             cls = mix_treeobject(mix)
-        object.__setattr__(self, name, TreeObject(self, name, prefix))
+        obj = TreeObject(self, name, prefix)
+        object.__setattr__(self, name, obj)
         self._objects.append((name, prefix, mix))
+        return obj
 
     def set_objects(self, other):
 

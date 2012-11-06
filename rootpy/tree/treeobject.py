@@ -31,11 +31,20 @@ class TreeObject(object):
         self.tree = tree
         self.name = name
         self.prefix = prefix
+        self._inited = True
 
     def __eq__(self, other):
 
-        return self.name == other.name and \
-               self.prefix == other.prefix
+        return (isinstance(other, self.__class__) and
+                self.name == other.name and
+                self.prefix == other.prefix)
+
+    def __hash__(self):
+
+        return hash(
+           (self.__class__.__name__,
+            self.name,
+            self.prefix))
 
     def __getitem__(self, attr):
 
@@ -49,6 +58,15 @@ class TreeObject(object):
 
         return getattr(self.tree, self.prefix + attr)
 
+    def __setattr__(self, attr, value):
+
+        if '_inited' not in self.__dict__:
+            return object.__setattr__(self, attr, value)
+        try:
+            setattr(self.tree, self.prefix + attr, value)
+        except AttributeError:
+            return object.__setattr__(self, attr, value)
+
 
 class TreeCollectionObject(TreeObject):
 
@@ -60,8 +78,15 @@ class TreeCollectionObject(TreeObject):
 
     def __eq__(self, other):
 
-        return self.index == other.index and \
-               TreeObject.__eq__(self, other)
+        return TreeObject.__eq__(self, other) and self.index == other.index
+
+    def __hash__(self):
+
+        return hash(
+           (self.__class__.__name__,
+            self.name,
+            self.prefix,
+            self.index))
 
     def __getattr__(self, attr):
 
@@ -119,7 +144,15 @@ class TreeCollection(object):
 
     def reset(self):
 
+        self.reset_selection()
+        self.reset_cache()
+
+    def reset_selection(self):
+
         self.selection = None
+
+    def reset_cache(self):
+
         self.__cache = {}
 
     def remove(self, thing):
@@ -200,7 +233,12 @@ class TreeCollection(object):
         """
         if index >= getattr(self.tree, self.size):
             raise IndexError(index)
-        return self.tree_object_cls(self.tree, self.name, self.prefix, index)
+        if self.__cache_objects and index in self.__cache:
+            return self.__cache[index]
+        obj = self.tree_object_cls(self.tree, self.name, self.prefix, index)
+        if self.__cache_objects:
+            self.__cache[index] = obj
+        return obj
 
     def __getitem__(self, index):
 

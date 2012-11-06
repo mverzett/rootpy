@@ -30,14 +30,17 @@ def icutop(func):
 
 def _expand_ternary(match):
 
-    return '%s%s&&%s%s' % \
+    return '(%s%s)&&(%s%s)' % \
            (match.group('left'),
             match.group('name'),
             match.group('name'),
             match.group('right'))
 
 
-_TERNARY = re.compile('(?P<left>[<>=]+)\s*(?P<name>\w+)\s*(?P<right>[<>=]+)')
+_TERNARY = re.compile(
+        '(?P<left>[a-zA-Z0-9_\.]+[<>=]+)'
+        '(?P<name>\w+)'
+        '(?P<right>[<>=]+[a-zA-Z0-9_\.]+)')
 
 
 class Cut(ROOT.TCut):
@@ -57,10 +60,10 @@ class Cut(ROOT.TCut):
                 ifile.close()
             elif isinstance(cut, Cut):
                 cut = cut.GetTitle()
-            # expand ternary operations (i.e. 3 < A < 8)
-            cut = re.sub(_TERNARY, _expand_ternary, cut)
             # remove whitespace
             cut = cut.replace(' ', '')
+            # expand ternary operations (i.e. 3<A<8)
+            cut = re.sub(_TERNARY, _expand_ternary, cut)
         ROOT.TCut.__init__(self, cut)
 
     @staticmethod
@@ -77,6 +80,29 @@ class Cut(ROOT.TCut):
             return Cut(cut)
         except:
             raise TypeError("cannot convert %s to Cut" % type(thing))
+
+    @property
+    def str(self):
+
+        return self.GetTitle()
+
+    @str.setter
+    def str(self, content):
+
+        self.SetTitle(str(content))
+
+    def __mod__(self, other):
+
+        if isinstance(other, Cut):
+            other = str(other)
+        return Cut(str(self) % other)
+
+    def __imod__(self, other):
+
+        if isinstance(other, Cut):
+            other = str(other)
+        self.SetTitle(str(self) % other)
+        return self
 
     @cutop
     def __and__(self, other):
@@ -176,11 +202,11 @@ class Cut(ROOT.TCut):
 
     def __str__(self):
 
-        return self.__repr__()
+        return self.GetTitle()
 
     def __repr__(self):
 
-        return self.GetTitle()
+        return "'%s'" % self.__str__()
 
     def __nonzero__(self):
         """
@@ -240,6 +266,7 @@ class Cut(ROOT.TCut):
         string = str(self)
         string = string.replace('&&', '&')
         string = string.replace('||', '|')
+        string = string.replace('!', '~')
         return string
 
     def replace(self, name, newname):

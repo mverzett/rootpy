@@ -1,5 +1,5 @@
 import ROOT
-from ..core import Object, isbasictype, camelCaseMethods
+from ..core import Object, isbasictype, snake_case_methods
 from .core import Plottable, dim
 from ..objectproxy import ObjectProxy
 from ..registry import register
@@ -697,6 +697,9 @@ class _Hist2D(_HistBase):
 
     def __getitem__(self, index):
 
+        if isinstance(index, tuple):
+            # support indexing like h[1,2]
+            return self.z(*index)
         _HistBase.__getitem__(self, index)
         a = ObjectProxy([
             self.GetBinContent(index + 1, j)
@@ -705,9 +708,29 @@ class _Hist2D(_HistBase):
         return a
 
     def _setitem(self, i):
+
         def __setitem(j, value):
             self.SetBinContent(i + 1, j + 1, value)
         return __setitem
+
+    def ravel(self):
+        """
+        Convert 2D histogram into 1D histogram with the y-axis repeated along
+        the x-axis, similar to NumPy's ravel().
+        """
+        nbinsx = self.nbins(1)
+        nbinsy = self.nbins(2)
+        out = Hist(self.nbins(1) * nbinsy,
+                self.xedgesl(0), self.xedgesh(-1) * nbinsy,
+                type=self.TYPE,
+                title=self.title,
+                **self.decorators)
+        for i in range(nbinsx):
+            for j in range(nbinsy):
+                out[i + nbinsy * j] = self[i, j]
+                out.SetBinError(i + nbinsy * j + 1,
+                        self.GetBinError(i + 1, j + 1))
+        return out
 
 
 class _Hist3D(_HistBase):
@@ -931,6 +954,9 @@ class _Hist3D(_HistBase):
 
     def __getitem__(self, index):
 
+        if isinstance(index, tuple):
+            # support indexing like h[1,2,1]
+            return self.w(*index)
         _HistBase.__getitem__(self, index)
         out = []
         for j in xrange(1, self.GetNbinsY() + 1):
@@ -942,48 +968,68 @@ class _Hist3D(_HistBase):
         return out
 
     def _setitem(self, i, j):
+
         def __setitem(k, value):
             self.SetBinContent(i + 1, j + 1, k + 1, value)
         return __setitem
 
 
-def _Hist_class(type='F', rootclass=None):
+def _Hist_class(type='F'):
 
-    if rootclass is None:
-        type = type.upper()
-        if type not in _HistBase.TYPES:
-            raise TypeError("No histogram available with type %s" % type)
-        rootclass = _HistBase.TYPES[type][0]
+    type = type.upper()
+    if type not in _HistBase.TYPES:
+        raise TypeError("No histogram available with bin type %s" % type)
+    rootclass = _HistBase.TYPES[type][0]
 
     class Hist(_Hist, rootclass):
-        pass
+        TYPE = type
     return Hist
 
 
-def _Hist2D_class(type='F', rootclass=None):
+def _Hist2D_class(type='F'):
 
-    if rootclass is None:
-        type = type.upper()
-        if type not in _HistBase.TYPES:
-            raise TypeError("No histogram available with type %s" % type)
-        rootclass = _HistBase.TYPES[type][1]
+    type = type.upper()
+    if type not in _HistBase.TYPES:
+        raise TypeError("No histogram available with bin type %s" % type)
+    rootclass = _HistBase.TYPES[type][1]
 
     class Hist2D(_Hist2D, rootclass):
-        pass
+        TYPE = type
     return Hist2D
 
 
-def _Hist3D_class(type='F', rootclass=None):
+def _Hist3D_class(type='F'):
 
-    if rootclass is None:
-        type = type.upper()
-        if type not in _HistBase.TYPES:
-            raise TypeError("No histogram available with type %s" % type)
-        rootclass = _HistBase.TYPES[type][2]
+    type = type.upper()
+    if type not in _HistBase.TYPES:
+        raise TypeError("No histogram available with bin type %s" % type)
+    rootclass = _HistBase.TYPES[type][2]
 
     class Hist3D(_Hist3D, rootclass):
-        pass
+        TYPE = type
     return Hist3D
+
+
+_HIST_CLASSES_1D = {}
+_HIST_CLASSES_2D = {}
+_HIST_CLASSES_3D = {}
+
+# register the classes
+for bintype in _HistBase.TYPES.keys():
+    cls = _Hist_class(type=bintype)
+    register()(cls)
+    snake_case_methods(cls)
+    _HIST_CLASSES_1D[bintype] = cls
+
+    cls = _Hist2D_class(type=bintype)
+    register()(cls)
+    snake_case_methods(cls)
+    _HIST_CLASSES_2D[bintype] = cls
+
+    cls = _Hist3D_class(type=bintype)
+    register()(cls)
+    snake_case_methods(cls)
+    _HIST_CLASSES_3D[bintype] = cls
 
 
 class Hist(_Hist):
@@ -992,10 +1038,10 @@ class Hist(_Hist):
     ROOT.TH1* class (where * is C, S, I, F, or D depending on the type
     keyword argument)
     """
-
     def __new__(cls, *args, **kwargs):
 
-        return _Hist_class(type=kwargs.get('type', 'F'))(*args, **kwargs)
+        return _HIST_CLASSES_1D[kwargs.get('type', 'F').upper()](
+                *args, **kwargs)
 
 
 class Hist2D(_Hist2D):
@@ -1004,10 +1050,10 @@ class Hist2D(_Hist2D):
     ROOT.TH1* class (where * is C, S, I, F, or D depending on the type
     keyword argument)
     """
-
     def __new__(cls, *args, **kwargs):
 
-        return _Hist2D_class(type=kwargs.get('type', 'F'))(*args, **kwargs)
+        return _HIST_CLASSES_2D[kwargs.get('type', 'F').upper()](
+                *args, **kwargs)
 
 
 class Hist3D(_Hist3D):
@@ -1016,28 +1062,15 @@ class Hist3D(_Hist3D):
     ROOT.TH1* class (where * is C, S, I, F, or D depending on the type
     keyword argument)
     """
-
     def __new__(cls, *args, **kwargs):
 
-        return _Hist3D_class(type=kwargs.get('type', 'F'))(*args, **kwargs)
-
-
-# register the classes
-for base1d, base2d, base3d in _HistBase.TYPES.values():
-    cls = _Hist_class(rootclass=base1d)
-    register()(cls)
-    camelCaseMethods(cls)
-    cls = _Hist2D_class(rootclass=base2d)
-    register()(cls)
-    camelCaseMethods(cls)
-    cls = _Hist3D_class(rootclass=base3d)
-    register()(cls)
-    camelCaseMethods(cls)
+        return _HIST_CLASSES_3D[kwargs.get('type', 'F').upper()](
+                *args, **kwargs)
 
 
 if ROOT.gROOT.GetVersionInt() >= 52800:
 
-    @camelCaseMethods
+    @snake_case_methods
     @register()
     class Efficiency(Plottable, Object, ROOT.TEfficiency):
 

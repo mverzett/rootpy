@@ -2,6 +2,6 @@ recursive-include examples *.py *.root
 include LICENSE
 include *.py
 include optional-requirements.txt
-include README
+include roosh-requirements.txt
 include README.rst
 include scripts/*

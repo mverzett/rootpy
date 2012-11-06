@@ -49,27 +49,14 @@ More specifically, `rootpy` provides:
   use `scikit-learn <http://scikit-learn.org>`_ for machine
   learning instead of `TMVA <http://tmva.sourceforge.net/>`_).
 
+* efficient filling of ROOT histograms from `NumPy` `ndarrays`.
+
 * a framework for parallelizing processes that run over many TTrees.
 
 * ``roosh``, a Bash-like shell environment for the ROOT TFile.
 
 * a collection of useful command line scripts: ``root-ls``, ``root-cp``,
   ``root-tree-ls``, and others.
-
-
-Have Questions or Found a Bug?
-------------------------------
-
-Post your questions on `stackoverflow.com <http://stackoverflow.com/>`_
-and use the tag ``rootpy`` (this tag does not exist yet, but if you have a
-reputation of at least 1500 then please create it).
-
-Think you found a bug? Open a new issue here:
-`github.com/rootpy/rootpy/issues <https://github.com/rootpy/rootpy/issues>`_.
-
-Also feel free to post questions or follow discussion on the developers
-(rootpy-dev@googlegroups.com) or users (rootpy-users@googlegroups.com) lists.
-
 
 Requirements
 ------------
@@ -83,13 +70,15 @@ rootpy is developed and tested on Linux and Mac.
 Optional
 --------
 
-* `NumPy`_ for speed (which min version?) in rootpy.???
-* `matplotlib`_ for plotting (which min version?) in rootpy.???
+* `NumPy`_ for speed
+* `matplotlib`_ for plotting
 * `PyTables`_ for HDF5 IO in rootpy.root2tables
-* `PyYAML <http://pyyaml.org/>`_ for ??? in rootpy.data.metadata
-* `PyX <http://pyx.sourceforge.net/>`_ for ??? in rootpy.tree.categories
-  see discussion `here <https://github.com/rootpy/rootpy/issues/32>`_
 * `readline <http://docs.python.org/library/readline.html>`_ and `termcolor <http://pypi.python.org/pypi/termcolor>`_ for roosh
+
+..
+   NumPy: which min version? List all places required in rootpy.
+   matplotlib: which min version? List all places required in rootpy.
+
 
 Getting the Latest Source
 -------------------------
@@ -97,12 +86,6 @@ Getting the Latest Source
 Clone the repository with git::
 
     git clone git://github.com/rootpy/rootpy.git
-
-then clone any submodules::
-    
-    cd rootpy
-    git submodule init
-    git submodule update
     
 or checkout with svn::
 
@@ -191,9 +174,24 @@ and later submit a pull request.
   `http://rootpy.github.com/rootpy <http://rootpy.github.com/rootpy>`_)
 * Unit testing
 * Brenchmarking performance (i.e. Tree read/write)
+* Cleaning up the existing code
 * Finishing the server/worker code for distributed computing across multiple
   nodes
 * Creation of a TBrowser alternative using PyGTK
 * Creation of a framework for managing datasets (using SQLite as a back-end?
   with revision control?)
 * Additional features anyone would like to implement
+
+
+Have Questions or Found a Bug?
+------------------------------
+
+Post your questions on `stackoverflow.com <http://stackoverflow.com/>`_
+and use the tag ``rootpy`` (this tag does not exist yet, but if you have a
+reputation of at least 1500 then please create it).
+
+Think you found a bug? Open a new issue here:
+`github.com/rootpy/rootpy/issues <https://github.com/rootpy/rootpy/issues>`_.
+
+Also feel free to post questions or follow discussion on the developers
+(rootpy-dev@googlegroups.com) or users (rootpy-users@googlegroups.com) lists.

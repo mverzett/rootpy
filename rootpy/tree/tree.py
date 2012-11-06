@@ -5,7 +5,7 @@ import fnmatch
 import ROOT
 
 from ..types import Variable
-from ..core import Object, camelCaseMethods, RequireFile
+from ..core import Object, snake_case_methods, RequireFile
 from ..plotting.core import Plottable
 from ..plotting import Hist, Canvas
 from ..registry import register
@@ -17,7 +17,11 @@ from .buffer import TreeBuffer
 from .model import TreeModel
 
 
-@camelCaseMethods
+class UserData(object):
+    pass
+
+
+@snake_case_methods
 @register()
 class Tree(Object, Plottable, RequireFile, ROOT.TTree):
     """
@@ -58,6 +62,7 @@ class Tree(Object, Plottable, RequireFile, ROOT.TTree):
         self._branch_cache = {}
         self._current_entry = 0
         self._always_read = []
+        self.userdata = UserData()
         self._inited = True
 
     def always_read(self, branches):
@@ -177,7 +182,11 @@ class Tree(Object, Plottable, RequireFile, ROOT.TTree):
         if isinstance(branches, basestring):
             branches = [branches]
         for branch in branches:
-            if self.has_branch(branch):
+            if '*' in branch:
+                matched_branches = self.glob(branch)
+                for b in matched_branches:
+                    self.SetBranchStatus(b, 1)
+            elif self.has_branch(branch):
                 self.SetBranchStatus(branch, 1)
 
     def deactivate(self, branches, exclusive=False):
@@ -187,7 +196,11 @@ class Tree(Object, Plottable, RequireFile, ROOT.TTree):
         if isinstance(branches, basestring):
             branches = [branches]
         for branch in branches:
-            if self.has_branch(branch):
+            if '*' in branch:
+                matched_branches = self.glob(branch)
+                for b in matched_branches:
+                    self.SetBranchStatus(b, 0)
+            elif self.has_branch(branch):
                 self.SetBranchStatus(branch, 0)
 
     @property
@@ -326,7 +339,10 @@ class Tree(Object, Plottable, RequireFile, ROOT.TTree):
             return
         if include_labels:
             print >> stream, sep.join(branches.keys())
-        for i in len(range(self)):
+        # even though 'entry' is not used, enumerate or simply iterating over
+        # self is required to update the buffer with the new branch values at
+        # each tree entry.
+        for i, entry in enumerate(self):
             print >> stream, sep.join([str(v.value) for v
                                        in branches.values()])
             if limit is not None and i + 1 == limit:
@@ -383,7 +399,7 @@ class Tree(Object, Plottable, RequireFile, ROOT.TTree):
         """
         return super(Tree, self).CopyTree(str(selection), *args, **kwargs)
 
-    def reset(self):
+    def reset_branch_values(self):
 
         self.buffer.reset()
 

@@ -72,7 +72,6 @@ def exit_application_loop():
 
     incpy.ignore
     """
-    print " caught, will stop waiting"
     ROOT.gSystem.ExitLoop()
 
 def get_visible_canvases():
@@ -83,7 +82,7 @@ def get_visible_canvases():
     return [c for c in ROOT.gROOT.GetListOfCanvases() if not c.IsBatch()]
 
 def run_application_until_done():
-    print "There are canvases open. Waiting until exit."
+
     had_gui_thread = stop_gui_thread()
 
     ROOT.gApplication._threaded = True
