@@ -377,6 +377,22 @@ class _HistBase(Plottable, Object):
 
         return array(typecode, self._content())
 
+    def fill_array(self, array, weights=None):
+        """
+        Fill this histogram with a NumPy array
+        """
+        try:
+            from . import _libnumpyhist
+            hist = ROOT.AsCObject(self)
+            if weights is not None:
+                _libnumpyhist.fill_hist_with_ndarray(
+                    hist, self.DIM, array, weights)
+            else:
+                _libnumpyhist.fill_hist_with_ndarray(
+                    hist, self.DIM, array)
+        except ImportError:
+            raise ImportError('``fill_array`` requires NumPy')
+
 
 class _Hist(_HistBase):
 
@@ -1172,7 +1188,7 @@ class HistStack(Plottable, Object, ROOT.THStack):
             else:
                 self.sum += hist
             self.hists.append(hist)
-            ROOT.THStack.Add(self, hist, hist.format)
+            ROOT.THStack.Add(self, hist, hist.drawstyle)
         else:
             raise TypeError(
                     "Only 1D and 2D histograms are supported")

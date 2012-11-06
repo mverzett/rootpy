@@ -3,15 +3,18 @@
 from argparse import ArgumentParser
 
 parser = ArgumentParser()
-parser.add_argument('-l', action='store_true', dest='nointro', default=False)
-parser.add_argument('file')
+parser.add_argument('-l', action='store_true', dest='nointro', default=False,
+        help="don't print the intro message")
+parser.add_argument('-u', '--update', action='store_true', default=False,
+        help="open the file in UPDATE mode (default: READ)")
+parser.add_argument('filename')
 args = parser.parse_args()
 
 import os
 import sys
 
-if not os.path.isfile(args.file):
-    sys.exit("File %s does not exist" % args.file)
+if not os.path.isfile(args.filename):
+    sys.exit("File %s does not exist" % args.filename)
 
 import readline
 import cmd
@@ -196,8 +199,14 @@ class ROOSH(exit_cmd, shell_cmd, empty_cmd):
     ls_parser.add_argument('-l', action='store_true',
                            dest='showtype', default=False)
     ls_parser.add_argument('files', nargs='*')
+    
+    mkdir_parser = ArgumentParser()
+    mkdir_parser.add_argument('-p', action='store_true',
+                           dest='recurse', default=False,
+                           help='create parent directories as required')
+    mkdir_parser.add_argument('paths', nargs='*')
 
-    def __init__(self, filename, stdin=None, stdout=None):
+    def __init__(self, filename, mode='READ', stdin=None, stdout=None):
         
         if stdin is None:
             stdin = sys.stdin
@@ -205,12 +214,12 @@ class ROOSH(exit_cmd, shell_cmd, empty_cmd):
             stdout = sys.stdout
         super(ROOSH, self).__init__(stdin=stdin, stdout=stdout)
         
-        file = ropen(filename)
+        root_file = ropen(filename, mode)
         self.files = {}
-        self.files[filename] = file
-        self.pwd = file
-        self.prev_pwd = file
-        self.current_file = file
+        self.files[filename] = root_file
+        self.pwd = root_file
+        self.prev_pwd = root_file
+        self.current_file = root_file
         
         self.namespace = {}
         self.__update_namespace()
@@ -351,22 +360,43 @@ class ROOSH(exit_cmd, shell_cmd, empty_cmd):
 
         return self.completion_helper(text, line, begidx, endidx) 
     
+    def help_ls(self):
+
+        print "list items contained in a directory"
+
+    def do_mkdir(self, args=None):
+        
+        if args is None:
+            args = '' 
+        args = ROOSH.mkdir_parser.parse_args(args.split())
+        
+        for path in args.paths:
+            try:
+                utils.mkdir(path, args.recurse)
+            except Exception, e:
+                print e
+
+    def complete_mkdir(self, text, line, begidx, endidx):
+
+        return self.completion_helper(text, line, begidx, endidx,
+                typename='TDirectoryFile')
+
     def completion_helper(self, text, line, begidx, endidx, typename=None):    
         
         things = []
-        dir = self.pwd
+        directory = self.pwd
         head = ''
         if begidx != endidx:
             prefix = line[begidx: endidx]
             head, prefix = os.path.split(prefix)
             if head:
                 try:
-                    dir = dir.GetDirectory(head)
+                    directory = directory.GetDirectory(head)
                 except DoesNotExist:
                     return []
         else:
             prefix = ''
-        for key in dir.GetListOfKeys():
+        for key in directory.GetListOfKeys():
             if typename is not None:
                 if key.GetClassName() != typename:
                     continue
@@ -379,10 +409,7 @@ class ROOSH(exit_cmd, shell_cmd, empty_cmd):
                 things.append(os.path.join(head, name))
         return things
 
-    def help_ls(self):
-
-        print "list items contained in a directory"
-    
+        
     def do_pwd(self, s=None):
         
         print self.pwd._path
@@ -532,7 +559,9 @@ if os.path.exists(history_file):
 history_size = os.getenv('ROOSH_HISTORY_SIZE', 500)
 readline.set_history_length(history_size)
 try:
-    terminal = ROOSH(args.file)
+    terminal = ROOSH(
+            args.filename,
+            mode='UPDATE' if args.update else 'READ')
     if args.nointro:
         terminal.cmdloop()
     else:

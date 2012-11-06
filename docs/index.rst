@@ -1,18 +1,25 @@
-:orphan:
-
-rootpy
-======
+.. raw:: html
+   
+   <h1>rootpy</h1>
 
 .. include:: ../README.rst
    :start-line: 11
+   :end-line: 60
 
 
-Contents
---------
+User Guide
+==========
 
 .. toctree::
-   :maxdepth: 1
+   :numbered:
 
-   start
-   tutorials/index
-   reference/modules
+   user_guide.rst
+
+
+Examples                                                                  
+========
+                                                                                 
+.. toctree::                                                                     
+   :maxdepth: 2                                                                  
+                                                                                 
+   auto_examples/index
