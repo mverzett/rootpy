@@ -185,6 +185,38 @@ def snake_case_methods(cls, debug=False):
         setattr(cls, new_name, value)
     return cls
 
+def asrpy(fn):
+    '''Changes the output of a function to a rootpy type'''
+    def _f(*args, **kwargs):
+        retval = fn(*args, **kwargs)
+        if isinstance(retval, tuple):
+            return tuple(asrootpy(i) for i in retval)
+        elif isinstance(retval, list):
+            return list(asrootpy(i) for i in retval)
+        else:
+            return asrootpy(fn(*args, **kwargs))
+    return _f
+
+def returns_rootpy(cls, debug=False):
+    """
+    Class decorator that ensures that each method or property returns
+    the proper rootpy object, even with ROOT methods.
+    Does not work on properties (yet) 
+    """
+    members = inspect.getmembers(cls)
+
+    for name, member in members:
+        # Is this a method?
+        if not inspect.ismethod(member) and not inspect.isfunction(member):
+            continue
+        method = getattr(cls, name)
+        setattr(
+            cls, 
+            name,
+            asrpy(method)
+            )
+
+    return cls
 
 def sync(lock):
     """
