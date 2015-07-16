@@ -17,7 +17,7 @@ import ROOT
 from .. import asrootpy, QROOT, log; log = log[__name__]
 from ..extern.six.moves import range
 from ..base import NamedObject, NamelessConstructorObject
-from ..decorators import snake_case_methods, cached_property
+from ..decorators import snake_case_methods, cached_property, returns_rootpy
 from ..context import invisible_canvas
 from ..utils.extras import izip_exact
 from ..extern.shortuuid import uuid
@@ -2248,14 +2248,17 @@ _HIST_CLASSES_3D = {}
 
 for bintype in _HistBase.TYPES.keys():
     cls = _Hist_class(type=bintype)
+    returns_rootpy(cls)
     snake_case_methods(cls)
     _HIST_CLASSES_1D[bintype] = cls
 
     cls = _Hist2D_class(type=bintype)
+    returns_rootpy(cls)
     snake_case_methods(cls)
     _HIST_CLASSES_2D[bintype] = cls
 
     cls = _Hist3D_class(type=bintype)
+    returns_rootpy(cls)
     snake_case_methods(cls)
     _HIST_CLASSES_3D[bintype] = cls
 

@@ -14,7 +14,7 @@ from collections import defaultdict
 from .. import ROOT
 from .. import asrootpy, QROOT
 from ..base import Object, NamedObject
-from ..decorators import snake_case_methods
+from ..decorators import snake_case_methods, returns_rootpy
 from ..context import preserve_current_directory
 from ..utils.path import expand as expand_path
 from ..memory.keepalive import keepalive
@@ -149,6 +149,7 @@ def root_open(filename, mode=''):
     return root_file
 
 
+@returns_rootpy
 @snake_case_methods
 class Key(NamedObject, QROOT.TKey):
     """

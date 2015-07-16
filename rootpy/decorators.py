@@ -7,9 +7,10 @@ import re
 import inspect
 import warnings
 from functools import wraps
+from functools import update_wrapper
 
 from .context import preserve_current_directory
-from . import ROOT, ROOT_VERSION
+from . import ROOT, ROOT_VERSION, asrootpy
 
 __all__ = [
     'requires_ROOT',
@@ -20,10 +21,17 @@ __all__ = [
     'snake_case_methods',
     'sync',
     'cached_property',
+    'returns_rootpy',
 ]
 
 
 CONVERT_SNAKE_CASE = os.getenv('NO_ROOTPY_SNAKE_CASE', False) is False
+
+def decorator(d):
+    "Make function d a decorator that wraps function fn"
+    return lambda fn: update_wrapper(d(fn),fn)
+
+decorator = decorator(decorator)
 
 
 def requires_ROOT(version, exception=False):
@@ -185,6 +193,7 @@ def snake_case_methods(cls, debug=False):
         setattr(cls, new_name, value)
     return cls
 
+@decorator
 def asrpy(fn):
     '''Changes the output of a function to a rootpy type'''
     def _f(*args, **kwargs):
